@@ -15,11 +15,11 @@ BOT_TOKEN = "8602929076:AAGwLbiiceSMIsrWWSoBfC6GlF2_DxO7ZH8"
 ADMIN_ID = 8574753078
 UPI_ID = "theghost@ptyes"
 
-# Channel links (Replace with your channels)
+# Channel links (REPLACE WITH YOUR ACTUAL CHANNELS)
 CHANNEL_1 = "https://t.me/rscoderhubchannel"
-CHANNEL_2 = "https://t.me/rscoderhubgruop"
+CHANNEL_2 = "https://t.me/rscoderhubgroup"
 CHANNEL_1_ID = "@rscoderhubchannel"
-CHANNEL_2_ID = "@rscoderhubgruop"
+CHANNEL_2_ID = "@rscoderhubgroup"
 
 # Premium plans
 PREMIUM_PLANS = {
@@ -219,8 +219,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"🎯 **Welcome {user.first_name}!**\n\n"
         "To use this bot, you must join our channels first:\n\n"
-        f"📢 Channel 1\n"
-        f"📢 Channel 2\n\n"
+        f"📢 **Channel 1**\n"
+        f"📢 **Channel 2**\n\n"
         "**Free Trial:** 7 days\n"
         "**Premium:** 5 accounts, priority posting\n\n"
         "After joining, click the button below.",
@@ -865,27 +865,18 @@ async def auto_post(context: ContextTypes.DEFAULT_TYPE):
     for ad in ads:
         for group in groups:
             try:
-                # Get account session
+                # For now, using bot to post
+                await context.bot.send_message(group[0], f"📢 **Ad from user {ad[1]}:**\n\n{ad[3]}")
+                await asyncio.sleep(2)
+                
+                # Update last posted time
                 conn = sqlite3.connect('database/ads_bot.db')
                 c = conn.cursor()
-                c.execute("SELECT session_string, phone_number FROM accounts WHERE id = ?", (ad[2],))
-                account_data = c.fetchone()
+                c.execute("UPDATE ads SET last_posted = ? WHERE id = ?", 
+                         (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), ad[0]))
+                conn.commit()
                 conn.close()
                 
-                if account_data:
-                    # Use the account to post (you'd need to implement this with Telethon)
-                    # For now, using bot to post
-                    await context.bot.send_message(group[0], f"📢 **Ad from user {ad[1]}:**\n\n{ad[3]}")
-                    await asyncio.sleep(2)
-                    
-                    # Update last posted time
-                    conn = sqlite3.connect('database/ads_bot.db')
-                    c = conn.cursor()
-                    c.execute("UPDATE ads SET last_posted = ? WHERE id = ?", 
-                             (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), ad[0]))
-                    conn.commit()
-                    conn.close()
-                    
             except Exception as e:
                 print(f"Error posting ad {ad[0]}: {e}")
                 continue
@@ -952,7 +943,8 @@ def main():
     
     # Auto post job (every 5 minutes)
     job_queue = app.job_queue
-    job_queue.run_repeating(auto_post, interval=300, first=10)
+    if job_queue:
+        job_queue.run_repeating(auto_post, interval=300, first=10)
     
     print("🤖 Ads Bot is running on Railway!")
     print(f"Bot token: {BOT_TOKEN[:10]}...")
